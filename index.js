@@ -1271,7 +1271,7 @@ function exportToExcel() {
     const worksheet = workbook.addWorksheet('Annotations and Canvas');
 
     // Add annotations table to Excel
-    worksheet.addRow(['Annotation Number', 'Description', 'Color']);
+    worksheet.addRow(['Số thứ tự', 'Thông tin mô tả', 'Chất liệu']);
     const rows = annotationTable.querySelectorAll('tbody tr');
     rows.forEach(row => {
         console.log("Processing row:", row.innerHTML); // Log the HTML of each row to inspect its structure
@@ -1314,7 +1314,7 @@ function exportToExcel() {
         ext: { width: 400, height: 300 } // Adjust dimensions as needed
     });
     console.log("Adding canvas image to Excel");
-
+    /*
     // Leave a gap between canvas image and shapes
     const lastImageRow = imageRow + 20; // Adjust based on image size
     worksheet.getRow(lastImageRow + 1).getCell(1).value = '';
@@ -1329,7 +1329,7 @@ function exportToExcel() {
         console.log("Adding shape to Shapes sheet:", shapeData);
         worksheet.addRow(shapeData);
     });
-
+*/
     // Save workbook as an Excel file
     console.log("Saving workbook as annotations.xlsx...");
     workbook.xlsx.writeBuffer().then(buffer => {
