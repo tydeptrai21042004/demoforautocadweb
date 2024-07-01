@@ -19,7 +19,13 @@ function setDrawingMode(mode) {
     if (mode) {
         lockImages(true);  // Lock image movement during drawing
     } else {
-        lockImages(false);  // Unlock image movement
+        canvas.forEachObject(function(obj) {
+            obj.set({
+                selectable: true,
+                evented: true,
+            });
+        });
+        lockImages(false);
     }
     console.log(`Drawing mode set to: ${mode}`);
     resetCanvasListeners();
@@ -592,16 +598,15 @@ function paste() {
         });
     }
 }
-// Function to draw lines
 function drawLine() {
     var line, isDown;
 
-    canvas.on('mouse:down', function(o) {
+    function handleMouseDown(o) {
         if (drawingMode !== 'line') return;
         var pointer = canvas.getPointer(o.e);
 
         // Check if clicking on an image
-        var target = canvas.findTarget(o.e);
+        var target = canvas.findTarget(o.e, false);
         if (target && target.type === 'image') {
             return; // Ignore drawing lines when clicking on an image
         }
@@ -614,38 +619,47 @@ function drawLine() {
             stroke: 'red',
             originX: 'center',
             originY: 'center',
-            selectable: true
+            selectable: false, // Temporarily set to false while drawing
+            hasControls: true,
+            hasBorders: true,
         });
         canvas.add(line);
         canvas.bringToFront(line); // Ensure the line is brought to the front
-    });
+    }
 
-    canvas.on('mouse:move', function(o) {
+    function handleMouseMove(o) {
         if (!isDown || drawingMode !== 'line') return;
         var pointer = canvas.getPointer(o.e);
         line.set({ x2: pointer.x, y2: pointer.y });
         canvas.renderAll();
-    });
+    }
 
-    canvas.on('mouse:up', function(o) {
+    function handleMouseUp(o) {
         if (!isDown || drawingMode !== 'line') return;
         isDown = false;
 
-        // Check if mouse up was on an image
-        var target = canvas.findTarget(o.e);
-        if (target && target.type === 'image') {
-            // Move the line slightly away from the image to prevent automatic grouping
-            line.set({ top: line.top + 10, left: line.left + 10 });
-        }
+        // Ensure the line is selectable after drawing
+        line.set({
+            selectable: true,
+            evented: true, // Ensure the line can receive events
+        });
+        line.setCoords(); // Update the line's coordinates
 
-        //currentNumber = getLargestNumber() + 1;
+        // Add the annotation row
         //addAnnotationRow(currentNumber);
-        //addNumberLabel(currentNumber, line); // Add number label for the line
         annotationMap[currentNumber] = line;
         setDrawingMode(null);
 
+        canvas.off('mouse:down', handleMouseDown);
+        canvas.off('mouse:move', handleMouseMove);
+        canvas.off('mouse:up', handleMouseUp);
+
         canvas.renderAll();
-    });
+    }
+
+    canvas.on('mouse:down', handleMouseDown);
+    canvas.on('mouse:move', handleMouseMove);
+    canvas.on('mouse:up', handleMouseUp);
 }
 
 function addNewAnnotation(object) {
@@ -739,10 +753,10 @@ function drawArrow() {
         setDrawingMode(null);
     });
 }
-// Function to draw circles
 function drawCircle() {
     var circle, isDown;
-    canvas.on('mouse:down', function(o) {
+
+    function handleMouseDown(o) {
         if (drawingMode !== 'circle') return;
         isDown = true;
         var pointer = canvas.getPointer(o.e);
@@ -755,29 +769,55 @@ function drawCircle() {
             fill: 'rgba(0,0,0,0)',
             stroke: 'red',
             strokeWidth: 2,
-            selectable: true
+            selectable: false, // Temporarily set to false while drawing
+            hasControls: true,
+            hasBorders: true,
         });
         canvas.add(circle);
         circle.bringToFront();
-    });
-    canvas.on('mouse:move', function(o) {
+    }
+
+    function handleMouseMove(o) {
         if (!isDown || drawingMode !== 'circle') return;
         var pointer = canvas.getPointer(o.e);
         var radius = Math.sqrt(Math.pow(circle.left - pointer.x, 2) + Math.pow(circle.top - pointer.y, 2));
         circle.set({ radius: radius });
         canvas.renderAll();
-    });
-    canvas.on('mouse:up', function(o) {
+    }
+
+    function handleMouseUp(o) {
         if (!isDown || drawingMode !== 'circle') return;
         isDown = false;
+
+        // Ensure the circle is selectable after drawing
+        circle.set({
+            selectable: true,
+            evented: true, // Ensure the circle can receive events
+        });
+        circle.setCoords(); // Update the circle's coordinates
+
+        // Add the annotation row
+        //addAnnotationRow(currentNumber);
         annotationMap[currentNumber] = circle;
         setDrawingMode(null);
-    });
+
+        // Cleanup event listeners
+        canvas.off('mouse:down', handleMouseDown);
+        canvas.off('mouse:move', handleMouseMove);
+        canvas.off('mouse:up', handleMouseUp);
+
+        canvas.renderAll();
+    }
+
+    // Attach event listeners
+    canvas.on('mouse:down', handleMouseDown);
+    canvas.on('mouse:move', handleMouseMove);
+    canvas.on('mouse:up', handleMouseUp);
 }
-// Function to draw rectangles
 function drawRectangle() {
     var rect, isDown, origX, origY;
-    canvas.on('mouse:down', function(o) {
+
+    function handleMouseDown(o) {
         if (drawingMode !== 'rectangle') return;
         isDown = true;
         var pointer = canvas.getPointer(o.e);
@@ -794,12 +834,15 @@ function drawRectangle() {
             fill: 'rgba(0,0,0,0)',
             stroke: 'red',
             strokeWidth: 2,
-            selectable: true
+            selectable: false, // Temporarily set to false while drawing
+            hasControls: true,
+            hasBorders: true,
         });
         canvas.add(rect);
         rect.bringToFront();
-    });
-    canvas.on('mouse:move', function(o) {
+    }
+
+    function handleMouseMove(o) {
         if (!isDown || drawingMode !== 'rectangle') return;
         var pointer = canvas.getPointer(o.e);
         if (origX > pointer.x) {
@@ -808,43 +851,67 @@ function drawRectangle() {
         if (origY > pointer.y) {
             rect.set({ top: Math.abs(pointer.y) });
         }
-        rect.set({ width: Math.abs(origX - pointer.x) });
-        rect.set({ height: Math.abs(origY - pointer.y) });
+        rect.set({
+            width: Math.abs(origX - pointer.x),
+            height: Math.abs(origY - pointer.y)
+        });
         canvas.renderAll();
-    });
+    }
 
-    canvas.on('mouse:up', function(o) {
+    function handleMouseUp(o) {
         if (!isDown || drawingMode !== 'rectangle') return;
         isDown = false;
 
+        // Ensure the rectangle is selectable after drawing
+        rect.set({
+            selectable: true,
+            evented: true, // Ensure the rectangle can receive events
+        });
+        rect.setCoords(); // Update the rectangle's coordinates
+
+        // Add the annotation row
+        //addAnnotationRow(currentNumber);
         annotationMap[currentNumber] = rect;
         setDrawingMode(null);
-    });
+
+        // Cleanup event listeners
+        canvas.off('mouse:down', handleMouseDown);
+        canvas.off('mouse:move', handleMouseMove);
+        canvas.off('mouse:up', handleMouseUp);
+
+        canvas.renderAll();
+    }
+
+    // Attach event listeners
+    canvas.on('mouse:down', handleMouseDown);
+    canvas.on('mouse:move', handleMouseMove);
+    canvas.on('mouse:up', handleMouseUp);
 }
 
 function drawCustomShape() {
     var isDrawing = false;
     var path = [];
+    var tempPath;
 
-    canvas.on('mouse:down', function(o) {
+    function handleMouseDown(o) {
         if (drawingMode !== 'customShape') return;
         isDrawing = true;
         var pointer = canvas.getPointer(o.e);
         path = [['M', pointer.x, pointer.y]];
-    });
+    }
 
-    canvas.on('mouse:move', function(o) {
+    function handleMouseMove(o) {
         if (!isDrawing || drawingMode !== 'customShape') return;
         var pointer = canvas.getPointer(o.e);
         path.push(['L', pointer.x, pointer.y]);
 
         // Clear temporary path if it exists
-        if (canvas.tempPath) {
-            canvas.remove(canvas.tempPath);
+        if (tempPath) {
+            canvas.remove(tempPath);
         }
 
         // Create a new temporary path
-        canvas.tempPath = new fabric.Path(path, {
+        tempPath = new fabric.Path(path, {
             stroke: 'red',
             fill: 'rgba(0,0,0,0)',
             strokeWidth: 2,
@@ -852,30 +919,45 @@ function drawCustomShape() {
             evented: false
         });
 
-        canvas.add(canvas.tempPath);
+        canvas.add(tempPath);
         canvas.renderAll();
-    });
+    }
 
-    canvas.on('mouse:up', function(o) {
+    function handleMouseUp(o) {
         if (!isDrawing || drawingMode !== 'customShape') return;
         isDrawing = false;
 
         // Create the final path from the collected points
-        customShape = new fabric.Path(path, {
+        var customShape = new fabric.Path(path, {
             stroke: 'red',
             fill: 'rgba(0,0,0,0)',
             strokeWidth: 2,
-            selectable: true
+            selectable: true,
+            evented: true // Ensure the shape can receive events
         });
 
         canvas.add(customShape);
-        canvas.remove(canvas.tempPath); // Remove the temporary path
-        canvas.tempPath = null; // Reset temporary path
+        if (tempPath) {
+            canvas.remove(tempPath); // Remove the temporary path
+        }
 
-
+        // Add the annotation row
+        //addAnnotationRow(currentNumber);
         annotationMap[currentNumber] = customShape;
         setDrawingMode(null);
-    });
+
+        // Cleanup event listeners
+        canvas.off('mouse:down', handleMouseDown);
+        canvas.off('mouse:move', handleMouseMove);
+        canvas.off('mouse:up', handleMouseUp);
+
+        canvas.renderAll();
+    }
+
+    // Attach event listeners
+    canvas.on('mouse:down', handleMouseDown);
+    canvas.on('mouse:move', handleMouseMove);
+    canvas.on('mouse:up', handleMouseUp);
 }
 //var deletedObjects = [];
 //var imageUrls = new Map(); // Assuming you store image URLs in a Map with image object as the key
