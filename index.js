@@ -7,18 +7,30 @@ var drawingMode = null;  // Track the current drawing mode
 var customShape = { path: [] };  // Store custom shape path
 var deletedImageUrls = new Set();
 var isDrawing = false;
+
 canvas.on('mouse:down', function(o) {
     images.forEach(function(img) {
         img.sendToBack();
     });
 });
-// Function to set drawing mode
 function setDrawingMode(mode) {
+    // Deselect all selected objects
+    canvas.discardActiveObject();
+    canvas.renderAll();
+
     drawingMode = mode;
     customShape = new fabric.Path(''); // Reset custom shape path
+
     if (mode) {
+        if (!backgroundImage) {
+            // If no background image is set, call toggleBackground to set one
+            toggleBackground();
+        }
+
         lockImages(true);  // Lock image movement during drawing
+        console.log(`Drawing mode enabled: ${mode}`);
     } else {
+        // Unlock image movement and make all objects selectable and evented
         canvas.forEachObject(function(obj) {
             obj.set({
                 selectable: true,
@@ -26,7 +38,9 @@ function setDrawingMode(mode) {
             });
         });
         lockImages(false);
+        console.log('Drawing mode disabled');
     }
+
     console.log(`Drawing mode set to: ${mode}`);
     resetCanvasListeners();
 }
@@ -232,6 +246,7 @@ function uploadImage() {
 }
 // Event listeners for buttons
 document.getElementById('imageLoader').addEventListener('change', handleImage, false);
+
 document.getElementById('drawLine').addEventListener('click', () => setDrawingMode('line'));
 document.getElementById('drawCircle').addEventListener('click', () => setDrawingMode('circle'));
 document.getElementById('drawArrow').addEventListener('click', () => setDrawingMode('arrow'));
@@ -267,15 +282,146 @@ document.addEventListener('keydown', function(event) {
         zoomOut();
     } else if (event.shiftKey && event.key === 'e'|| event.shiftKey && event.key === 'E') {
         removeEmptyRows();
-    } else if (event.key === 'Delete') {
-        console.log('Delete key pressed. Deleting image and shapes...');
-        deleteImageAndShapes(); // Call the function
-    } else if ((event.ctrlKey || event.metaKey) && (event.key === 'c' || event.key === 'C')) {
+    } //else if (event.key === 'Delete') {
+       // console.log('Delete key pressed. Deleting image and shapes...');
+       // deleteImageAndShapes(); // Call the function
+    //} 
+    else if ((event.ctrlKey || event.metaKey) && (event.key === 'c' || event.key === 'C')) {
         copy();
     } else if ((event.ctrlKey || event.metaKey) && (event.key === 'v' || event.key === 'V')) {
         paste();
     } 
 });
+// Function to create a thin but longer arrow shape at a specific location
+// Function to create a thin but longer arrow shape at a specific location
+function createThinLongArrow(x, y) {
+    canvas.discardActiveObject();
+    var headLength = 15; // Length of the arrowhead
+    var lineLength = 150; // Length of the main arrow line
+    var strokeWidth = 1; // Thin line width
+    var minMargin = 70; // Minimum margin from the boundary
+
+    // Get canvas dimensions
+    var canvasWidth = canvas.width;
+    var canvasHeight = canvas.height;
+
+    // Adjust x and y to ensure they are not too close to the boundary
+    x = Math.max(minMargin, Math.min(x, canvasWidth - minMargin));
+    y = Math.max(minMargin, Math.min(y, canvasHeight - minMargin));
+    console.log(x,y)
+    // Determine nearest boundary
+    var distances = [
+        { distance: x - minMargin, direction: 'left' },
+        { distance: canvasWidth - x - minMargin, direction: 'right' },
+        { distance: y - minMargin, direction: 'top' },
+        { distance: canvasHeight - y - minMargin, direction: 'bottom' }
+    ];
+    var nearest = distances.reduce((prev, curr) => (prev.distance < curr.distance ? prev : curr));
+
+    var endX = x;
+    var endY = y;
+
+    switch (nearest.direction) {
+        case 'left':
+            endX -= lineLength;
+            break;
+        case 'right':
+            endX += lineLength;
+            break;
+        case 'top':
+            endY -= lineLength;
+            break;
+        case 'bottom':
+            endY += lineLength;
+            break;
+    }
+
+    // Create the main line of the arrow
+    var arrow = new fabric.Line([endX, endY, x, y], {
+        strokeWidth: strokeWidth, // Thin line width
+        fill: 'red',
+        stroke: 'red',
+        selectable: true,
+        originX: 'center',
+        originY: 'center'
+    });
+
+    // Calculate the angle of the line
+    var angle = Math.atan2(y - endY, x - endX);
+
+    // Create the two lines for the arrowhead
+    var arrowHead1 = new fabric.Line([
+        x,
+        y,
+        x - headLength * Math.cos(angle - Math.PI / 6),
+        y - headLength * Math.sin(angle - Math.PI / 6)
+    ], {
+        strokeWidth: strokeWidth, // Thin line width
+        fill: 'red',
+        stroke: 'red',
+        selectable: true,
+        originX: 'center',
+        originY: 'center'
+    });
+
+    var arrowHead2 = new fabric.Line([
+        x,
+        y,
+        x - headLength * Math.cos(angle + Math.PI / 6),
+        y - headLength * Math.sin(angle + Math.PI / 6)
+    ], {
+        strokeWidth: strokeWidth, // Thin line width
+        fill: 'red',
+        stroke: 'red',
+        selectable: true,
+        originX: 'center',
+        originY: 'center'
+    });
+
+    // Group the arrow line and arrowheads together
+    var arrowGroup = new fabric.Group([arrow, arrowHead1, arrowHead2], {
+        selectable: true,
+        originX: 'center',
+        originY: 'center'
+    });
+
+    canvas.add(arrowGroup);
+
+    // Create an annotation number
+    var currentNumber = getLargestNumber() + 1;
+
+    // Add the arrow group to the annotationMap
+    annotationMap[currentNumber] = arrowGroup;
+    addNumberLabel(currentNumber, arrowGroup);
+    // Add an annotation row
+    addAnnotationRow(currentNumber);
+}
+
+// Function to handle keypress event for creating arrows
+function setupArrowShortcut() {
+    var mouseX, mouseY;
+
+    // Listen for mouse movement to get the current position
+    canvas.on('mouse:move', function(o) {
+        var pointer = canvas.getPointer(o.e);
+        mouseX = pointer.x;
+        mouseY = pointer.y;
+    });
+    
+    // Listen for keypress to create the arrow
+    document.addEventListener('click', function(event) {
+        if (event.clientX !== undefined && event.clientY !== undefined) {
+            console.log(event.clientX, event.clientY);
+            createThinLongArrow(mouseX, mouseY);
+        }
+    });
+    
+}
+
+// Initialize the setup
+setupArrowShortcut();
+
+
 // Define an array of colors
 var colors = ['white','black','red', 'blue', 'green', 'yellow', 'purple']; // màu cho đường
 var colorsfill = ['white','black','red', 'blue', 'green', 'yellow', 'purple','']; // màu cho phần phía trong
@@ -374,7 +520,6 @@ function getShapeType(object) {
 }
 // Function to handle image upload
 var imageObjects = []; // Global variable to store the current image object
-//document.getElementById('imageLoader').addEventListener('change', handleImageUpload, false);
 var imageUrls = new Map(); // Map to store image URLs
 // Function to handle image upload
 // Handle image input and add to canvas
@@ -404,6 +549,8 @@ function handleImage(e) {
                     canvas.setBackgroundImage(image, canvas.renderAll.bind(canvas));
                     isBackgroundSet = true;
                     console.log('Background image set:', image);
+                    // Call toggleBackground function here
+                    toggleBackground();
                 } else {
                     console.log('Image added:', image);
                 }
@@ -443,6 +590,11 @@ function saveStatedelete() {
 }
 
 // Event listener for 'Delete' key press
+// Event listener for 'Delete' key press
+// Flag to track if the delete action should proceed
+let proceedWithDelete = false;
+
+// Event listener for 'Delete' key press
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Delete') {
         // Ask for confirmation before deleting
@@ -456,6 +608,8 @@ document.addEventListener('keydown', function(event) {
         }
     }
 });
+
+
 
 // Function to delete images and shapes
 function deleteImageAndShapes() {
@@ -683,9 +837,8 @@ function drawArrow() {
             strokeWidth: 2,
             fill: 'red',
             stroke: 'red',
-            selectable: true,
-            originX: 'center',
-            originY: 'center'
+            selectable: false,  // Make the line non-selectable during drawing
+            evented: false      // Make the line non-evented during drawing
         });
         canvas.add(arrow);
     });
@@ -716,9 +869,8 @@ function drawArrow() {
             strokeWidth: 2,
             fill: 'red',
             stroke: 'red',
-            selectable: true,
-            originX: 'center',
-            originY: 'center'
+            selectable: false,  // Make the arrowhead non-selectable during drawing
+            evented: false      // Make the arrowhead non-evented during drawing
         });
 
         arrowHead2 = new fabric.Line([
@@ -730,21 +882,22 @@ function drawArrow() {
             strokeWidth: 2,
             fill: 'red',
             stroke: 'red',
-            selectable: true,
-            originX: 'center',
-            originY: 'center'
+            selectable: false,  // Make the arrowhead non-selectable during drawing
+            evented: false      // Make the arrowhead non-evented during drawing
         });
 
+        // Group the arrow and arrowheads together
         var arrowGroup = new fabric.Group([arrow, arrowHead1, arrowHead2], {
             selectable: true,
+            evented: true,
             originX: 'center',
             originY: 'center'
         });
 
         canvas.add(arrowGroup);
-        canvas.remove(arrow);
-        canvas.remove(arrowHead1);
-        canvas.remove(arrowHead2);
+        canvas.remove(arrow);       // Remove the individual arrow line
+        canvas.remove(arrowHead1);  // Remove the individual arrowhead1
+        canvas.remove(arrowHead2);  // Remove the individual arrowhead2
 
         currentNumber = getLargestNumber() + 1;
         addAnnotationRow(currentNumber);
@@ -753,6 +906,7 @@ function drawArrow() {
         setDrawingMode(null);
     });
 }
+
 function drawCircle() {
     var circle, isDown;
 
@@ -1345,16 +1499,32 @@ canvas.on('object:removed', saveState);
 // function to export file in Pdf and excel
 const exportExcelButton = document.getElementById('exportExcel');
 exportExcelButton.addEventListener('click', exportToExcel);
-
 function exportToExcel() {
     console.log("Starting export to Excel...");
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Annotations and Canvas');
 
-    // Add annotations table to Excel
-    worksheet.addRow(['Số thứ tự', 'Thông tin mô tả', 'Chất liệu']);
+    // Add header to Excel starting from row 2
+    const headerRow = worksheet.getRow(2);
+    headerRow.values = ['Số thứ tự', 'Thông tin mô tả', 'Chất liệu', '', 'Location'];
+    headerRow.font = { bold: true };
+
+    // Set border for the header row
+    headerRow.eachCell((cell, colNumber) => {
+        if (colNumber !== 5) { // Skip column E
+            cell.border = {
+                top: { style: 'thin' },
+                left: { style: 'thin' },
+                bottom: { style: 'thin' },
+                right: { style: 'thin' }
+            };
+        }
+    });
+
+    // Add annotations table to Excel starting from row 3
     const rows = annotationTable.querySelectorAll('tbody tr');
+    let currentRow = 3; // Start adding data from row 3
     rows.forEach(row => {
         console.log("Processing row:", row.innerHTML); // Log the HTML of each row to inspect its structure
         try {
@@ -1371,18 +1541,28 @@ function exportToExcel() {
             const description = descriptionInput.value;
             const color = colorInput.value;
 
-            const rowData = [number, description, color];
+            const rowData = [number, description, color, '', ''];
             console.log("Adding row to Annotations sheet:", rowData);
-            worksheet.addRow(rowData);
+            const excelRow = worksheet.getRow(currentRow);
+            excelRow.values = rowData;
+
+            // Set border for each cell in the row, except column E
+            excelRow.eachCell((cell, colNumber) => {
+                if (colNumber !== 5) { // Skip column E
+                    cell.border = {
+                        top: { style: 'thin' },
+                        left: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        right: { style: 'thin' }
+                    };
+                }
+            });
+
+            currentRow++;
         } catch (error) {
             console.error("Error processing row:", row, error);
         }
     });
-
-    // Leave a gap between annotations and canvas image
-    const lastAnnotationRow = worksheet.lastRow.number;
-    worksheet.getRow(lastAnnotationRow + 1).getCell(1).value = '';
-    worksheet.getRow(lastAnnotationRow + 2).getCell(1).value = 'Canvas Image';
 
     // Add canvas image to Excel
     const canvasImage = canvas.toDataURL('image/png').replace(/^data:image\/png;base64,/, '');
@@ -1390,29 +1570,23 @@ function exportToExcel() {
         base64: canvasImage,
         extension: 'png',
     });
-    const imageRow = lastAnnotationRow + 3;
-    worksheet.addImage(imageId, {
-        tl: { col: 1, row: imageRow },
-        ext: { width: 400, height: 300 } // Adjust dimensions as needed
-    });
-    console.log("Adding canvas image to Excel");
-    /*
-    // Leave a gap between canvas image and shapes
-    const lastImageRow = imageRow + 20; // Adjust based on image size
-    worksheet.getRow(lastImageRow + 1).getCell(1).value = '';
-    worksheet.getRow(lastImageRow + 2).getCell(1).value = 'Shapes and Labels';
-    worksheet.getRow(lastImageRow + 3).getCell(1).value = 'Shape';
-    worksheet.getRow(lastImageRow + 3).getCell(2).value = 'Label';
 
-    // Add shapes and labels to Excel
-    Object.values(annotationMap).forEach(shape => {
-        const label = shape.text ? shape.text.text : '';
-        const shapeData = ['Circle', label]; // Adjust as per your shape types
-        console.log("Adding shape to Shapes sheet:", shapeData);
-        worksheet.addRow(shapeData);
+    // Calculate the number of rows the table occupies and add the image to start from row 3
+    const imageRow = 3; // The image should start from row 3
+    const totalHeight = rows.length * 20; // Adjust image height based on number of rows
+    const totalWidth = 16/9*totalHeight; // Adjust image width as needed
+
+    // Set the width of column E to fit the image
+    worksheet.getColumn(5).width = totalWidth / 7; // Adjust this value as needed
+
+    // Add the image to column E, starting from row 3
+    worksheet.addImage(imageId, {
+        tl: { col: 4, row: imageRow - 1 }, // E is column 5 (0-based index), starting at the correct row
+        ext: { width: totalWidth, height: totalHeight } // Adjust dimensions based on the table size
     });
-*/
-    // Save workbook as an Excel file
+
+    console.log("Adding canvas image to Excel");
+
     console.log("Saving workbook as annotations.xlsx...");
     workbook.xlsx.writeBuffer().then(buffer => {
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -1426,3 +1600,4 @@ function exportToExcel() {
         console.log("Export to Excel complete.");
     });
 }
+
