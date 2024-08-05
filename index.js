@@ -409,7 +409,7 @@ function setupArrowShortcut() {
     });
     
     // Listen for keypress to create the arrow
-    document.addEventListener('click', function(event) {
+    document.addEventListener('keydown', function(event) {
         if (event.key === 'A'||event.key === 'a') {
             //console.log(event.clientX, event.clientY);
             createThinLongArrow(mouseX, mouseY);
