@@ -17,6 +17,27 @@ body {
     border-radius: 8px;
 }
 
+.tabs {
+    margin: 10px 0;
+}
+
+.tabs ul {
+    list-style-type: none;
+    padding: 0;
+    display: flex;
+}
+
+.tabs ul li {
+    padding: 10px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    margin-right: 5px;
+    background-color: #f1f1f1;
+}
+
+.tabs ul li.active {
+    background-color: #ddd;
+}
 .manual {
     width: 25%;
     padding: 20px;
