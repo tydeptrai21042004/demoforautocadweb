@@ -410,11 +410,9 @@ function setupArrowShortcut() {
     
     // Listen for keypress to create the arrow
     document.addEventListener('click', function(event) {
-        if (event.clientX !== undefined && event.clientY !== undefined) {
-            if (backgroundImage){ 
-            console.log(event.clientX, event.clientY);
+        if (event.key === 'A'||event.key === 'a') {
+            //console.log(event.clientX, event.clientY);
             createThinLongArrow(mouseX, mouseY);
-            }
         }
     });
     
