@@ -1,5 +1,107 @@
 // Initialize fabric canvas
-var canvas = new fabric.Canvas('imageCanvas');
+// var canvas = getCanvasActive(document.querySelector('.screen .canvas'));
+// var table = initialTable(document.querySelector('.screen .table'));
+var canvas = null;
+var table = null;
+/* Create A New Screen */
+const btnCreateNewScreen = document.getElementById('createNewScreen');
+//initial active a new Screen 
+function initializeCanvas(screen) {
+    const parentScreen = screen.parentElement;
+    const canvasElement = parentScreen.querySelector('.active #imageCanvas');
+    canvas = new fabric.Canvas(canvasElement);
+    canvasElement.fabricCanvas = canvas;
+    parentScreen.querySelector('.active').setAttribute('data-initialized', 'true'); // Đánh dấu canvas đã được khởi tạo
+}
+//get current canvas is the canvas of active screen
+function getCanvasActive(screen) {
+    const parentScreen = screen.parentElement;
+    const canvasElement = parentScreen.querySelector('.active #imageCanvas');
+    canvas = canvasElement.fabricCanvas;
+}
+
+//filter node Text when get ChildNodes 
+function filterNode(element) {
+    let childNodes = Array.from(element);
+    const elementNodes = childNodes.filter(node => node.nodeType === Node.ELEMENT_NODE);
+    return elementNodes;
+}
+function setActiveScreen (tab, screen) {
+    filterNode(tab.parentElement.childNodes).forEach(tab => {tab.classList.remove('active')});
+    tab.classList.add('active');
+    filterNode(screen.parentElement.childNodes).forEach(screen => {screen.classList.remove('active')});
+    screen.classList.add('active');
+}
+//initial table for active screen
+function initialTable(screen){
+    const parentScreen = screen.parentElement;
+    const tableElement = parentScreen.querySelector('.active #annotationTable');
+    table = tableElement;
+}
+
+function addnewScreen() {
+    const tabContainer = document.querySelector('.frame .tab-screens-contain');
+    const screenContainer = document.querySelector('.frame .screens-contain');
+
+    const newDivTab = document.createElement('div');
+    newDivTab.classList.add('tab-content');
+    tabContainer.appendChild(newDivTab);
+
+    const tabText = document.createElement('p');
+    tabText.id = 'tab-text-content';
+    tabText.innerText = 'Scraft';
+    newDivTab.appendChild(tabText);
+
+    const deleteButton = document.createElement('i');
+    deleteButton.className = 'fa-solid fa-x';
+    newDivTab.appendChild(deleteButton);
+
+    const newDivScreenContain = document.createElement('div');
+    newDivScreenContain.classList = 'screen';
+    screenContainer.appendChild(newDivScreenContain);
+    const newDivScreenContent = `
+        <div class="canvas">
+            <canvas id="imageCanvas" width="1120" height="500"></canvas>
+            <input type="color" id="colorPicker" style="display:none;">
+        </div>
+        <div class="table">
+            <table id="annotationTable" class = "annotationTable">
+                <thead>
+                    <tr>
+                        <th>Số thứ tự</th>
+                        <th>Chất liệu</th>
+                        <th>Color</th>
+                        <th>Thông tin mô tả</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    `
+    newDivScreenContain.innerHTML += newDivScreenContent;
+
+    //get active the new created screen
+    setActiveScreen(newDivTab, newDivScreenContain)
+    initializeCanvas(newDivScreenContain);
+    initialTable(newDivScreenContain)
+    //Delete a new Screen
+    deleteButton.addEventListener('click', () => {
+        const parent = deleteButton.parentElement;
+        parent.parentElement.removeChild(parent);
+        const parentScreen = newDivScreenContain.parentElement;
+        parentScreen.removeChild(newDivScreenContain);
+    });
+
+    //get active screen when click
+    newDivTab.addEventListener('click', () => {
+        setActiveScreen(newDivTab, newDivScreenContain);
+        getCanvasActive(newDivScreenContain);
+        initialTable(newDivScreenContain)
+    })
+}
+addnewScreen();
+btnCreateNewScreen.addEventListener('click', addnewScreen)
+
 var currentNumber = 1;
 var annotationMap = {};  // Keep track of annotations
 var images = [];  // Track loaded images
@@ -8,7 +110,7 @@ var customShape = { path: [] };  // Store custom shape path
 var deletedImageUrls = new Set();
 var isDrawing = false;
 
-canvas.on('mouse:down', function(o) {
+canvas?.on('mouse:down', function(o) {
     images.forEach(function(img) {
         img.sendToBack();
     });
@@ -46,7 +148,7 @@ function setDrawingMode(mode) {
 }
 // Track mouse clicks on the canvas
 // Event listener for mouse down on the canvas
-canvas.on('mouse:down', function(o) {
+canvas?.on('mouse:down', function(o) {
     console.log('Clicked on blank canvas area');
     var pointer = canvas.getPointer(o.e);
     var clickedObject = canvas.findTarget(o.e);
@@ -74,7 +176,7 @@ canvas.on('mouse:down', function(o) {
 });
 
 // Event listener for mouse move on the canvas
-canvas.on('mouse:move', function(o) {
+canvas?.on('mouse:move', function(o) {
     if (canvas.isDragging) {
         var pointer = canvas.getPointer(o.e);
         var delta = new fabric.Point(pointer.x - canvas.lastPosX, pointer.y - canvas.lastPosY);
@@ -85,14 +187,14 @@ canvas.on('mouse:move', function(o) {
 });
 
 // Event listener for mouse up on the canvas
-canvas.on('mouse:up', function(o) {
+canvas?.on('mouse:up', function(o) {
     canvas.isDragging = false;
     canvas.selection = true; // Re-enable object selection
 });
 
 
 // Event handler for mouse down event
-canvas.on('mouse:down', function (options) {
+canvas?.on('mouse:down', function (options) {
     if (!drawingMode) return;
 
     isDrawing = true;
@@ -158,7 +260,7 @@ canvas.on('mouse:down', function (options) {
     console.log('Drawing object initialized:', drawingObject);
 });
 // Event handler for mouse move event
-canvas.on('mouse:move', function (options) {
+canvas?.on('mouse:move', function (options) {
     if (!isDrawing || !drawingObject) return;
     const pointer = canvas.getPointer(options.e);
     const x = pointer.x;
@@ -205,7 +307,7 @@ canvas.on('mouse:move', function (options) {
     canvas.renderAll();
 });
 // Event handler for mouse up event
-canvas.on('mouse:up', function () {
+canvas?.on('mouse:up', function () {
     isDrawing = false;
     drawingObject = null;
     console.log('Mouse up, drawing completed.');
@@ -248,17 +350,16 @@ function uploadImage() {
 document.getElementById('imageLoader').addEventListener('change', handleImage, false);
 
 document.getElementById('drawLine').addEventListener('click', () => setDrawingMode('line'));
-document.getElementById('drawCircle').addEventListener('click', () => setDrawingMode('circle'));
+//document.getElementById('drawCircle').addEventListener('click', () => setDrawingMode('circle'));
 document.getElementById('drawArrow').addEventListener('click', () => setDrawingMode('arrow'));
-document.getElementById('drawRectangle').addEventListener('click', () => setDrawingMode('rectangle'));
-document.getElementById('drawCustomShape').addEventListener('click', () => setDrawingMode('customShape'));
+//document.getElementById('drawRectangle').addEventListener('click', () => setDrawingMode('rectangle'));
+//document.getElementById('drawCustomShape').addEventListener('click', () => setDrawingMode('customShape'));
 document.getElementById('deleteAnnotation').addEventListener('click', deleteSelected);
 document.getElementById('toggleBackgroundButton').addEventListener('click', toggleBackground);
 document.getElementById('zoomIn').addEventListener('click', zoomIn);
 document.getElementById('zoomOut').addEventListener('click', zoomOut);
-// tạo table từ Id 
-var table = document.getElementById('annotationTable');
-table.addEventListener('click', function(event) {
+
+table?.addEventListener('click', function(event) {
     // Deselect any active object on canvas
     canvas.discardActiveObject();
     canvas.renderAll();
@@ -292,9 +393,22 @@ document.addEventListener('keydown', function(event) {
         paste();
     } 
 });
-// Function to create a thin but longer arrow shape at a specific location
-// Function to create a thin but longer arrow shape at a specific location
-function createThinLongArrow(x, y) {
+// Function to create a thin long arrow
+// Function to create a thin long arrow
+/*function createThinLongArrow(x, y) {
+    const parentScreen = document.querySelector('.active #screen'); // Adjust selector as necessary
+    if (!parentScreen) {
+        console.error('Parent screen not found');
+        return;
+    }
+    
+    const canvasElement = parentScreen.querySelector('#imageCanvas');
+    if (!canvasElement) {
+        console.error('Canvas element not found');
+        return;
+    }
+
+    const canvas = new fabric.Canvas(canvasElement);
     canvas.discardActiveObject();
     var headLength = 15; // Length of the arrowhead
     var lineLength = 150; // Length of the main arrow line
@@ -308,7 +422,8 @@ function createThinLongArrow(x, y) {
     // Adjust x and y to ensure they are not too close to the boundary
     x = Math.max(minMargin, Math.min(x, canvasWidth - minMargin));
     y = Math.max(minMargin, Math.min(y, canvasHeight - minMargin));
-    console.log(x,y)
+    console.log(x, y);
+
     // Determine nearest boundary
     var distances = [
         { distance: x - minMargin, direction: 'left' },
@@ -399,6 +514,19 @@ function createThinLongArrow(x, y) {
 
 // Function to handle keypress event for creating arrows
 function setupArrowShortcut() {
+    const parentScreen = document.querySelector('.active #screen'); // Adjust selector as necessary
+    if (!parentScreen) {
+        console.error('Parent screen not found');
+        return;
+    }
+
+    const canvasElement = parentScreen.querySelector('#imageCanvas');
+    if (!canvasElement) {
+        console.error('Canvas element not found');
+        return;
+    }
+
+    const canvas = new fabric.Canvas(canvasElement);
     var mouseX, mouseY;
 
     // Listen for mouse movement to get the current position
@@ -410,19 +538,19 @@ function setupArrowShortcut() {
     
     // Listen for keypress to create the arrow
     document.addEventListener('keydown', function(event) {
-        if (event.key === 'a'||event.key === 'A') {
+        if (event.key === 'Enter') {
+            console.log(mouseX,mouseY);
             if (mouseX !== undefined && mouseY !== undefined) {
-                console.log(mouseX,mouseY)
+                console.log(mouseX, mouseY);
                 createThinLongArrow(mouseX, mouseY);
             }
         }
     });
-    
 }
 
 // Initialize the setup
 setupArrowShortcut();
-
+*/
 
 // Define an array of colors
 var colors = ['white','black','red', 'blue', 'green', 'yellow', 'purple']; // màu cho đường
@@ -562,7 +690,7 @@ function handleImage(e) {
     }
 }
 // Disable image selection and movement when in drawing mode
-canvas.on('object:modified', function(event) {
+canvas?.on('object:modified', function(event) {
     if (drawingMode) {
         var activeObject = event.target;
         if (activeObject && activeObject.type === 'image') {
@@ -583,7 +711,7 @@ var redoStackdelete = [];
 function saveStatedelete() {
     let state = {
         canvas: canvas.toJSON(), // Save canvas state as JSON
-        table: document.getElementById('annotationTable').innerHTML,
+        table: table.innerHTML,
         imageObjects: imageObjects.map(obj => ({...obj})), // Deep copy of imageObjects
         annotationMap: {...annotationMap} // Deep copy of annotationMap
     };
@@ -664,11 +792,10 @@ function clearAnnotationData() {
 
 // Function to delete all table rows
 function deleteAllTableRows() {   
-    var table = document.getElementById('annotationTable');
     if (table) {
         // Remove all rows except the header row
-        while (table.rows.length > 1) {
-            table.deleteRow(1); // Start deleting from index 1 (first row after header)
+        while (table?.rows.length > 1) {
+            table?.deleteRow(1); // Start deleting from index 1 (first row after header)
         }
     } else {
         console.warn('Table not found.');
@@ -685,7 +812,7 @@ function undoDeleteImageAndShapes() {
     let lastState = undoStackdelete.pop();
     redoStackdelete.push({
         canvas: canvas.toJSON(),
-        table: document.getElementById('annotationTable').innerHTML,
+        table: table.innerHTML,
         annotationMap: {...annotationMap}
     });
 
@@ -696,7 +823,7 @@ function undoDeleteImageAndShapes() {
             canvas.renderAll(); // Render the canvas after loading state
 
             // Restore the table state
-            document.getElementById('annotationTable').innerHTML = lastState.table;
+            table.innerHTML = lastState.table;
 
             // Restore the annotation map
             annotationMap = lastState.annotationMap;
@@ -813,9 +940,9 @@ function drawLine() {
         canvas.renderAll();
     }
 
-    canvas.on('mouse:down', handleMouseDown);
-    canvas.on('mouse:move', handleMouseMove);
-    canvas.on('mouse:up', handleMouseUp);
+    canvas?.on('mouse:down', handleMouseDown);
+    canvas?.on('mouse:move', handleMouseMove);
+    canvas?.on('mouse:up', handleMouseUp);
 }
 
 function addNewAnnotation(object) {
@@ -829,7 +956,7 @@ function addNewAnnotation(object) {
 function drawArrow() {
     var arrow, arrowHead1, arrowHead2, isDown, startX, startY;
 
-    canvas.on('mouse:down', function(o) {
+    canvas?.on('mouse:down', function(o) {
         if (drawingMode !== 'arrow') return;
         isDown = true;
         var pointer = canvas.getPointer(o.e);
@@ -845,14 +972,14 @@ function drawArrow() {
         canvas.add(arrow);
     });
 
-    canvas.on('mouse:move', function(o) {
+    canvas?.on('mouse:move', function(o) {
         if (!isDown || drawingMode !== 'arrow') return;
         var pointer = canvas.getPointer(o.e);
         arrow.set({ x2: pointer.x, y2: pointer.y });
         canvas.renderAll();
     });
 
-    canvas.on('mouse:up', function(o) {
+    canvas?.on('mouse:up', function(o) {
         if (!isDown || drawingMode !== 'arrow') return;
         isDown = false;
 
@@ -908,6 +1035,102 @@ function drawArrow() {
         setDrawingMode(null);
     });
 }
+var lastMousePosition = { x: 0, y: 0 };
+
+// Function to create an arrow at the mouse position on 'A' keydown
+function createArrowAtMouse() {
+    if (canvas) {
+        canvas.on('mouse:move', function(o) {
+            var pointer = canvas.getPointer(o.e);
+            lastMousePosition.x = pointer.x;
+            lastMousePosition.y = pointer.y;
+        });
+    }
+
+    document.addEventListener('keydown', function(e) {
+      //  if (canvas) {
+        //    canvas.on('mouse:move', function(o) {
+          //      var pointer = canvas.getPointer(o.e);
+           //     lastMousePosition.x = pointer.x;
+            //    lastMousePosition.y = pointer.y;
+            //});
+       // }
+
+        if (e.key === 'a' || e.key === 'A') {
+            if (!canvas) {
+                console.error("Canvas is not initialized.");
+                return;
+            }
+
+            var canvasWidth = canvas.getWidth();
+            var canvasHeight = canvas.getHeight();
+            var buffer = 70;
+
+            var endX = Math.max(buffer, Math.min(lastMousePosition.x, canvasWidth - buffer));
+            var endY = Math.max(buffer, Math.min(lastMousePosition.y, canvasHeight - buffer));
+            var startX = endX - 100;  // Extend the length of the arrow backwards
+            var startY = endY;
+            console.log(startX, startY);
+            
+            var arrow = new fabric.Line([startX, startY, endX, endY], {
+                strokeWidth: 1,  // Make it thin
+                fill: 'red',
+                stroke: 'red',
+                selectable: false,
+                evented: false
+            });
+
+            var angle = Math.atan2(endY - startY, endX - startX);
+            var headLength = 10;
+
+            var arrowHead1 = new fabric.Line([
+                endX,
+                endY,
+                endX - headLength * Math.cos(angle - Math.PI / 6),
+                endY - headLength * Math.sin(angle - Math.PI / 6)
+            ], {
+                strokeWidth: 1,  // Match the thickness of the arrow
+                fill: 'red',
+                stroke: 'red',
+                selectable: false,
+                evented: false
+            });
+
+            var arrowHead2 = new fabric.Line([
+                endX,
+                endY,
+                endX - headLength * Math.cos(angle + Math.PI / 6),
+                endY - headLength * Math.sin(angle + Math.PI / 6)
+            ], {
+                strokeWidth: 1,  // Match the thickness of the arrow
+                fill: 'red',
+                stroke: 'red',
+                selectable: false,
+                evented: false
+            });
+
+            var arrowGroup = new fabric.Group([arrow, arrowHead1, arrowHead2], {
+                selectable: true,
+                evented: true,
+                originX: 'center',
+                originY: 'center'
+            });
+
+            canvas.add(arrowGroup);
+            canvas.remove(arrow);
+            canvas.remove(arrowHead1);
+            canvas.remove(arrowHead2);
+
+            currentNumber = getLargestNumber() + 1;
+            addAnnotationRow(currentNumber);
+            addNumberLabel(currentNumber, arrowGroup);
+            annotationMap[currentNumber] = arrowGroup;
+        }
+    });
+}
+
+createArrowAtMouse();
+
 
 function drawCircle() {
     var circle, isDown;
@@ -966,9 +1189,9 @@ function drawCircle() {
     }
 
     // Attach event listeners
-    canvas.on('mouse:down', handleMouseDown);
-    canvas.on('mouse:move', handleMouseMove);
-    canvas.on('mouse:up', handleMouseUp);
+    canvas?.on('mouse:down', handleMouseDown);
+    canvas?.on('mouse:move', handleMouseMove);
+    canvas?.on('mouse:up', handleMouseUp);
 }
 function drawRectangle() {
     var rect, isDown, origX, origY;
@@ -1039,9 +1262,9 @@ function drawRectangle() {
     }
 
     // Attach event listeners
-    canvas.on('mouse:down', handleMouseDown);
-    canvas.on('mouse:move', handleMouseMove);
-    canvas.on('mouse:up', handleMouseUp);
+    canvas?.on('mouse:down', handleMouseDown);
+    canvas?.on('mouse:move', handleMouseMove);
+    canvas?.on('mouse:up', handleMouseUp);
 }
 
 function drawCustomShape() {
@@ -1111,9 +1334,9 @@ function drawCustomShape() {
     }
 
     // Attach event listeners
-    canvas.on('mouse:down', handleMouseDown);
-    canvas.on('mouse:move', handleMouseMove);
-    canvas.on('mouse:up', handleMouseUp);
+    canvas?.on('mouse:down', handleMouseDown);
+    canvas?.on('mouse:move', handleMouseMove);
+    canvas?.on('mouse:up', handleMouseUp);
 }
 //var deletedObjects = [];
 //var imageUrls = new Map(); // Assuming you store image URLs in a Map with image object as the key
@@ -1127,7 +1350,7 @@ function getCurrentState() {
     return {
         canvas: JSON.stringify(canvas.toJSON()),
         annotationMap: JSON.stringify(annotationMap),
-        tableRows: document.getElementById('annotationTable').innerHTML
+        tableRows: table.innerHTML
     };
 }
 
@@ -1284,10 +1507,9 @@ function resetCanvasListeners() {
     }
 }
 
-// Function to get the largest annotation number
-function getLargestNumber() {
-    var largest = 0;
-    var table = document.getElementById('annotationTable').getElementsByTagName('tbody')[0];
+
+function getLargestNumberTable(tableElement, largest) {
+    var table = tableElement.querySelector('#annotationTable').getElementsByTagName('tbody')[0];
     for (var i = 0, row; row = table.rows[i]; i++) {
         var value = parseInt(row.cells[0].getElementsByTagName('input')[0].value);
         if (value > largest) {
@@ -1296,29 +1518,51 @@ function getLargestNumber() {
     }
     return largest;
 }
+function getLargestNumber() {
+    var tableActive = document.querySelector('.screen.active');
+    let nxtPoint = tableActive;
+    let prevPoint = tableActive;
+    var largest = 0;
+    while(prevPoint){
+        if (prevPoint.tagName === 'DIV') {
+            largest = getLargestNumberTable(prevPoint, largest);
+        }
+        prevPoint = prevPoint.previousElementSibling;
+    }
+    while(nxtPoint){
+        if (nxtPoint.tagName === 'DIV') {
+            largest = getLargestNumberTable(nxtPoint, largest);
+        }
+        nxtPoint = nxtPoint.nextElementSibling;
+    }
+    return largest;
+}
 
 // Function to add a new row in the annotation table
 function addAnnotationRow(number) {
-    var table = document.getElementById('annotationTable').getElementsByTagName('tbody')[0];
-    var newRow = table.insertRow();
+    var table = document.querySelector('.screen.active #annotationTable').getElementsByTagName('tbody')[0];
+    var newRow = table?.insertRow();
 
     var cell1 = newRow.insertCell(0);
     var cell2 = newRow.insertCell(1);
     var cell3 = newRow.insertCell(2);
+    var cell4 = newRow.insertCell(3);
+
 
     cell1.innerHTML = `<input type="number" id="annotationInput${number}" value="${number}" onchange="updateAnnotationNumber(${number}, this.value)">`;
-    cell2.innerHTML = `<input type="text" id="description${number}" value="" onchange="updateAnnotationDescription(${number}, this.value)">`;
+    cell2.innerHTML = `<input type="text" id="material${number}" value="">`;
     cell3.innerHTML = `<input type="text" id="color${number}" value="" onchange="updateAnnotationColor(${number}, this.value)">`;
+    cell4.innerHTML = `<input type="text" id="description${number}" value="" onchange="updateAnnotationDescription(${number}, this.value)">`;
 
     sortTable(); // Sort the table after adding a new row
 }
 
 // Function to delete a row from the annotation table
 function deleteAnnotationRow(number) {
-    var table = document.getElementById('annotationTable').getElementsByTagName('tbody')[0];
-    for (var i = 0, row; row = table.rows[i]; i++) {
+    var table = document.querySelector('.screen.active #annotationTable').getElementsByTagName('tbody')[0];
+    for (var i = 0, row; row = table?.rows[i]; i++) {
         if (parseInt(row.cells[0].getElementsByTagName('input')[0].value) === number) {
-            table.deleteRow(i);
+            table?.deleteRow(i);
             break;
         }
     }
@@ -1391,8 +1635,8 @@ function toggleBackground() {
 }
 // Function to update annotation number in table row
 function updateTableRowNumber(oldNumber, newNumber) {
-    var table = document.getElementById('annotationTable').getElementsByTagName('tbody')[0];
-    for (var i = 0, row; row = table.rows[i]; i++) {
+    var table = document.querySelector('.screen.active #annotationTable').getElementsByTagName('tbody')[0];
+    for (var i = 0, row; row = table?.rows[i]; i++) {
         if (parseInt(row.cells[0].getElementsByTagName('input')[0].value) === oldNumber) {
             row.cells[0].getElementsByTagName('input')[0].value = newNumber;
             break;
@@ -1401,56 +1645,81 @@ function updateTableRowNumber(oldNumber, newNumber) {
 }
 // Function to sort annotation table rows
 function sortTable() {
-    var table = document.getElementById('annotationTable').getElementsByTagName('tbody')[0];
-    var rows = Array.from(table.rows);
+    var table = document.querySelector('.screen.active #annotationTable').getElementsByTagName('tbody')[0];
+    var rows = Array.from(table?.rows);
     rows.sort((a, b) => parseInt(a.cells[0].getElementsByTagName('input')[0].value) - parseInt(b.cells[0].getElementsByTagName('input')[0].value));
-    rows.forEach(row => table.appendChild(row));
+    rows.forEach(row => table?.appendChild(row));
 }
 // Function to add number label associated with an annotation object
+// Assuming this code is executed after the canvas is properly initialized
 function addNumberLabel(number, obj) {
-    if (number === null) return;
-    console.log("Adding text object:", text);
-    // Calculate the position relative to the line object
+    if (number === null || !obj) return;
+
+    // Initialize Fabric.js canvas if it's not already initialized
+    if (!window.canvas) {
+        const parentScreen = screen.parentElement;
+        const canvasElement = parentScreen.querySelector('.active #imageCanvas');
+        window.canvas = canvasElement.fabricCanvas;
+    }
+
+    const canvas = window.canvas;
+
+    // Calculate the position relative to the object
     var labelLeft = obj.left;
-    var labelTop = obj.top - 10; // Adjust as needed
+    var labelTop = obj.top - 20; // Adjust as needed
+
     var text = new fabric.Text(String(number), {
         left: labelLeft,
         top: labelTop,
-        fontSize: 16,
+        fontSize: 24, // Make the label bigger
         fill: 'red',
         selectable: false,
         evented: false
     });
+
     obj.text = text;
     canvas.add(text);
     canvas.bringToFront(text);
-    // Optionally, bring the line object to the front as well
+    // Optionally, bring the object to the front as well
     canvas.bringToFront(obj);
     canvas.renderAll();
-}
-// Event listener for updating number label positions when objects are moved, scaled, or rotated
-canvas.on('object:moved', updateNumberLabelPosition);
-canvas.on('object:scaling', updateNumberLabelPosition);
-canvas.on('object:rotated', updateNumberLabelPosition);
 
-// Function to update number label position based on object movement, scaling, or rotation
-function updateNumberLabelPosition(e) {
-    var obj = e.target;
-    if (obj.text) {
+    // Function to update the position of the label text
+    function updateNumberLabelPosition(obj) {
+        if (!obj || !obj.text) return;
+
+        // Calculate the new position of the label
+        var labelLeft = obj.left;
+        var labelTop = obj.top - 20; // Adjust as needed
+
+        // Update the position of the label text
         obj.text.set({
-            left: obj.left,
-            top: obj.top - 10
+            left: labelLeft,
+            top: labelTop
         });
+
+        // Ensure the canvas updates the changes
         canvas.renderAll();
     }
+
+    // Event listener to update label positions when an object is modified
+    canvas.on('object:modified', function(e) {
+        var modifiedObj = e.target;
+
+        // Check if the object has a label text associated with it
+        if (modifiedObj && modifiedObj.text) {
+            updateNumberLabelPosition(modifiedObj);
+        }
+    });
 }
+
 
 // Function to remove rows without number column values and corresponding shapes with NaN labels
 function removeEmptyRows() {
-    var table = document.getElementById('annotationTable').getElementsByTagName('tbody')[0];
+    var table = document.querySelector('.screen.active #annotationTable').getElementsByTagName('tbody')[0];
     
-    for (var i = table.rows.length - 1; i >= 0; i--) {
-        var inputElement = table.rows[i].cells[0].getElementsByTagName('input')[0];
+    for (var i = table?.rows.length - 1; i >= 0; i--) {
+        var inputElement = table?.rows[i].cells[0].getElementsByTagName('input')[0];
         var value = parseInt(inputElement.value);
         
         if (isNaN(value)) {
@@ -1462,7 +1731,7 @@ function removeEmptyRows() {
                 deleteAnnotationText(shapeToRemove); // Delete associated text label
             }
             // Delete row from table regardless of NaN label
-            table.deleteRow(i);
+            table?.deleteRow(i);
         }
     }
     canvas.renderAll();
@@ -1495,9 +1764,9 @@ function updateAnnotationColor(number, color) {
 // Initialize history array
 
 // Save state on every modification
-canvas.on('object:added', saveState);
-canvas.on('object:modified', saveState);
-canvas.on('object:removed', saveState);
+canvas?.on('object:added', saveState);
+canvas?.on('object:modified', saveState);
+canvas?.on('object:removed', saveState);
 // function to export file in Pdf and excel
 const exportExcelButton = document.getElementById('exportExcel');
 exportExcelButton.addEventListener('click', exportToExcel);
@@ -1509,7 +1778,7 @@ function exportToExcel() {
 
     // Add header to Excel starting from row 2
     const headerRow = worksheet.getRow(2);
-    headerRow.values = ['Số thứ tự', 'Thông tin mô tả', 'Chất liệu', '', 'Location'];
+    headerRow.values = ['Số thứ tự', 'Chất liệu', 'Màu sắc', '', 'Location','Thông tin mô tả'];
     headerRow.font = { bold: true };
 
     // Set border for the header row
@@ -1523,9 +1792,10 @@ function exportToExcel() {
             };
         }
     });
-
+    //Cái chỗ này kết quả trả về là nhiều bảng gộp lại nè
     // Add annotations table to Excel starting from row 3
-    const rows = annotationTable.querySelectorAll('tbody tr');
+    const rows = document.querySelectorAll('.annotationTable tbody tr');
+    
     let currentRow = 3; // Start adding data from row 3
     rows.forEach(row => {
         console.log("Processing row:", row.innerHTML); // Log the HTML of each row to inspect its structure
@@ -1566,6 +1836,7 @@ function exportToExcel() {
         }
     });
 
+    //Mầy tự giải quyết mấy cái hình nó bị ghép vào nhau đi
     // Add canvas image to Excel
     const canvasImage = canvas.toDataURL('image/png').replace(/^data:image\/png;base64,/, '');
     const imageId = workbook.addImage({
@@ -1602,4 +1873,6 @@ function exportToExcel() {
         console.log("Export to Excel complete.");
     });
 }
+
+
 
