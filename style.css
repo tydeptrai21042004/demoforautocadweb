@@ -17,27 +17,6 @@ body {
     border-radius: 8px;
 }
 
-.tabs {
-    margin: 10px 0;
-}
-
-.tabs ul {
-    list-style-type: none;
-    padding: 0;
-    display: flex;
-}
-
-.tabs ul li {
-    padding: 10px;
-    cursor: pointer;
-    border: 1px solid #ccc;
-    margin-right: 5px;
-    background-color: #f1f1f1;
-}
-
-.tabs ul li.active {
-    background-color: #ddd;
-}
 .manual {
     width: 25%;
     padding: 20px;
@@ -115,13 +94,13 @@ body {
     background-color: #3b556e;
 }
 
-.canvas-container {
+.canvas{
     width: 100%;
     text-align: center;
     background-color: #fafafa;
 }
 
-.table-container {
+.table {
     padding: 20px;
     background-color: #fafafa;
     max-height: 300px; /* Set a maximum height for the table container */
@@ -150,4 +129,41 @@ thead{
 .toolbar-2{
     margin-top: 20px;
     text-align: center;
+}
+.tab-screens-contain {
+    display: flex;
+    background-color: #f2f2f2;
+    width: 100%;
+}
+.tab-screens-contain .tab-content {
+    display: flex;
+    padding: 10px 20px;
+    justify-content: center;
+    align-items: center;
+}
+.tab-screens-contain .tab-content.active, .tab-screens-contain .tab-content:hover {
+    background-color: white;
+    border-radius: 10px 10px 0 0;
+}
+.tab-screens-contain .tab-content i {
+    display: flex;
+    width: 16px;
+    padding: 3px;
+    justify-content: center;
+    margin-left: 25px;
+    visibility: hidden;
+}
+.tab-screens-contain .tab-content.active i,  .tab-screens-contain .tab-content:hover i{
+    visibility: visible;
+}
+.tab-screens-contain .tab-content i:hover {
+    background-color: black;
+    border-radius: 100%;
+    color: white;
+}
+.screens-contain .screen {
+    display: none;
+}
+.screens-contain .screen.active {
+    display: block;
 }
